@@ -1,0 +1,17 @@
+{
+  "name": "IlvesBotti2019",
+  "keywords": "Ilves 2019, botti, partio",
+  "description": "Arduino kirjasto Ilves 2019 -leirin Arduino bottia varten",
+  "authors":
+  {
+    "name": "Matti Karjalainen",
+    "email": "matti.karjalainen@partio.fi"
+  },
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/kungfo0/arduino"
+  },
+  "frameworks": "arduino",
+  "platforms": "espressif8266"
+}
