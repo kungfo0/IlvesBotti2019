@@ -5,7 +5,15 @@
 #include <ArduinoOTA.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
-#include <Adafruit_NeoPixel.h>
+#include <NeoPixelBus.h>
+
+#define colorSaturation 128
+
+static const RgbColor PUNAINEN(colorSaturation, 0, 0);
+static const RgbColor VIHREA(0, colorSaturation, 0);
+static const RgbColor SININEN(0, 0, colorSaturation);
+static const RgbColor VALKOINEN(colorSaturation);
+static const RgbColor MUSTA(0);
 
 enum directions {
     FORWARD,
@@ -22,21 +30,25 @@ class IlvesBotti2019
 public:
     IlvesBotti2019();
     IlvesBotti2019(int moottori1SuuntaPin, int moottori2SuuntaPin, int moottori1PWMPin, int moottori2PWMPin,
-            int sensori1TrigPin, int sensori2TrigPin, int sensori1EchoPin, int sensori2EchoPin);
+            int sensori1TrigPin, int sensori2TrigPin, int sensori1EchoPin, int sensori2EchoPin, uint16_t ledienLkm, uint8_t ledPin);
     static void asetaMoottorin1Nopeus(int nopeus);
     static void asetaMoottorin2Nopeus(int nopeus);
     static void asetaMoottorienNopeus(int nopeus);
-    static void asetaLedinVari(int ledi, uint8_t r, uint8_t g, uint8_t b, uint8_t w);
-    static void asetaLedinVari(int ledi, uint32_t vari);
+    static void asetaLedinVari(int ledi, RgbColor vari);
+    static void asetaLedienVari(RgbColor);
     static void loop();
     static int lueEtuSensori();
     static int lueSivuSensori();
     static void wifi(char* ssid, char *passphrase, char *name);
     static void asetaNopeuksienRajaArvot(int minNopeus, int maxNopeus, int pysahtynyt, int oikeaSaato, int vasenSaato);
-    static void asetaNeoPixel(uint16_t ledienLkm, uint8_t ledPin, neoPixelType pixelinTyyppi);
     static void setup();
     static void asetaToimintojenKesto(int kestoMs);
     static void asetaHtml(String html);
+    static bool stopped;
+    static bool shouldTurnLeft;
+    static bool shouldTurnRight;
+    static bool shouldGoForward;
+    static bool shouldGoBackward;
 
 private:
     static long durationFront;
@@ -44,11 +56,6 @@ private:
     static int distanceFront;
     static int distanceSide;
     static bool OTAStarted;
-    static bool stopped;
-    static bool shouldTurnLeft;
-    static bool shouldTurnRight;
-    static bool shouldGoForward;
-    static bool shouldGoBackward;
     static int trigPin;
     static int echoPin;
     static int trigPin2;
@@ -58,11 +65,14 @@ private:
     static int motorPWMPin2;
     static int motorDirPin1;
     static int motorDirPin2;
+    static uint16_t ledienLkm;
+    static uint8_t ledienPin;
     static int minSpeed;
     static int maxSpeed;
     static int speedStopped;
     static int speedAdjustRight;
     static int speedAdjustLeft;
+    static int wifiConnectMaxRetries;
     static std::string wifiSsid;
     static std::string wifiPass;
     static std::string nimi;
@@ -88,5 +98,6 @@ private:
     static void turnLeft();
     static void goForward();
     static void goBackward();
+    static NeoPixelBus<NeoRgbFeature, Neo400KbpsMethod>* pixels;
 };
 #endif

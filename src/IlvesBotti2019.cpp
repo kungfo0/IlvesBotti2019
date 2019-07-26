@@ -13,6 +13,11 @@ std::string IlvesBotti2019::wifiSsid;
 std::string IlvesBotti2019::wifiPass;
 std::string IlvesBotti2019::extraHtml;
 
+uint16_t IlvesBotti2019::ledienLkm = 1;
+uint8_t IlvesBotti2019::ledienPin = 3;
+
+NeoPixelBus<NeoRgbFeature, Neo400KbpsMethod>* IlvesBotti2019::pixels = NULL;
+
 void IlvesBotti2019::wifi(char* ssid, char *passphrase, char *name)
 {
     wifiSsid = ssid;
@@ -22,9 +27,61 @@ void IlvesBotti2019::wifi(char* ssid, char *passphrase, char *name)
 
 #endif
 
-uint16_t pixelsLength = 1;
-uint8_t pixelsPin = 1;
-neoPixelType pixelsType = NEO_RGBW + NEO_KHZ800;
+IlvesBotti2019::IlvesBotti2019()
+{
+    if (pixels) delete pixels;
+    pixels = new NeoPixelBus<NeoRgbFeature, Neo400KbpsMethod>(ledienLkm, ledienPin);
+    pixels->ClearTo(VIHREA);
+}
+
+IlvesBotti2019::IlvesBotti2019(int moottori1SuuntaPin, int moottori2SuuntaPin, int moottori1PWMPin, int moottori2PWMPin,
+                               int sensori1TrigPin, int sensori2TrigPin, int sensori1EchoPin, int sensori2EchoPin, uint16_t ledCount, uint8_t ledPin)
+{
+    motorPWMPin1 = moottori1PWMPin;
+    motorDirPin1 = moottori1SuuntaPin;
+
+    motorPWMPin2 = moottori2PWMPin;
+    motorDirPin2 = moottori2SuuntaPin;
+
+    trigPin = sensori1TrigPin;
+    echoPin = sensori1EchoPin;
+
+    trigPin2 = sensori2TrigPin;
+    echoPin2 = sensori2EchoPin;
+
+    ledienLkm = ledCount;
+    ledienPin = ledPin;
+
+    if (pixels) delete pixels;
+    pixels = new NeoPixelBus<NeoRgbFeature, Neo400KbpsMethod>(ledienLkm, ledienPin);
+    pixels->ClearTo(VIHREA);
+}
+
+int maxDistance = 200;
+int maxPulseTime = 30000;
+
+#define swap(a,b) a ^= b; b ^= a; a ^= b;
+#define sort(a,b) if(a>b){ swap(a,b); }
+
+int median(int a, int b, int c, int d, int e)
+{
+    sort(a,b);
+    sort(d,e);
+    sort(a,c);
+    sort(b,c);
+    sort(a,d);
+    sort(c,d);
+    sort(b,e);
+    sort(b,c);
+
+    return c;
+}
+
+// The cyclic buffer
+int frontReadings = 0;
+int sideReadings = 0;
+int frontSensorReadings[5];
+int sideSensorReadings[5];
 
 int IlvesBotti2019::motorPWMPin1 = 15;
 int IlvesBotti2019::motorDirPin1 = 13;
@@ -39,18 +96,7 @@ int IlvesBotti2019::speedStopped = 0;
 int IlvesBotti2019::speedAdjustRight = 1.0;
 int IlvesBotti2019::speedAdjustLeft = 1.0;
 
-void IlvesBotti2019::asetaNeoPixel(uint16_t ledienLkm, uint8_t ledPin, neoPixelType pixelinTyyppi) {
-    pixelsLength = ledienLkm;
-    pixelsPin = ledPin;
-    pixelsType = pixelinTyyppi;
-}
-
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(pixelsLength, pixelsPin, pixelsType);
-
-uint32_t red = pixels.Color(255, 0, 0);
-uint32_t green = pixels.Color(0, 255, 0);
-uint32_t blue = pixels.Color(0, 0, 255);
-uint32_t white = pixels.Color(255, 255, 255, 255);
+int IlvesBotti2019::wifiConnectMaxRetries = 20;
 
 // defines pins numbers
 int IlvesBotti2019::trigPin = D2;
@@ -58,26 +104,6 @@ int IlvesBotti2019::echoPin = D1;
 
 int IlvesBotti2019::trigPin2 = D4;
 int IlvesBotti2019::echoPin2 = D3;
-IlvesBotti2019::IlvesBotti2019()
-{
-
-}
-
-IlvesBotti2019::IlvesBotti2019(int moottori1SuuntaPin, int moottori2SuuntaPin, int moottori1PWMPin, int moottori2PWMPin,
-                               int sensori1TrigPin, int sensori2TrigPin, int sensori1EchoPin, int sensori2EchoPin)
-{
-    motorPWMPin1 = moottori1PWMPin;
-    motorDirPin1 = moottori1SuuntaPin;
-
-    motorPWMPin2 = moottori2PWMPin;
-    motorDirPin2 = moottori2SuuntaPin;
-
-    trigPin = sensori1TrigPin;
-    echoPin = sensori1EchoPin;
-
-    trigPin2 = sensori2TrigPin;
-    echoPin2 = sensori2EchoPin;
-}
 
 long IlvesBotti2019::durationFront;
 long IlvesBotti2019::durationSide;
@@ -157,9 +183,18 @@ void IlvesBotti2019::setupWifi() {
     hostname += String(ESP.getChipId(), HEX);
     WiFi.hostname(hostname);
     WiFi.begin(wifiSsid.c_str(), wifiPass.c_str());
-    while (WiFi.status() != WL_CONNECTED) {
+    int tried = 0;
+    while (WiFi.status() != WL_CONNECTED && tried < wifiConnectMaxRetries) {
         delay(500);
+        tried++;
     }
+
+    if(tried >= wifiConnectMaxRetries) {
+          asetaLedienVari(PUNAINEN);
+    } else {
+        asetaLedienVari(VIHREA);
+    }
+
     // http server handlers
     server.on("/", HTTP_GET, handleRoot);
     server.on("/toggle-motors", HTTP_POST, toggleMotors);
@@ -224,14 +259,17 @@ void IlvesBotti2019::asetaMoottorienNopeus(int nopeus) {
     asetaMoottorin2Nopeus(nopeus);
 }
 
-void IlvesBotti2019::asetaLedinVari(int ledinNumero, uint8_t r, uint8_t g, uint8_t b, uint8_t w) {
-    pixels.setPixelColor(ledinNumero, r, g, b, w);
-    pixels.show();
+void IlvesBotti2019::asetaLedienVari(RgbColor vari) {
+    Serial.println(ledienLkm);
+    for(int i=0;i<ledienLkm;i++) {
+        pixels->SetPixelColor(i, vari);
+    }
+    pixels->Show();
 }
 
-void IlvesBotti2019::asetaLedinVari(int ledinNumero, uint32_t vari) {
-    pixels.setPixelColor(ledinNumero, vari);
-    pixels.show();
+void IlvesBotti2019::asetaLedinVari(int ledinNumero, RgbColor vari) {
+    pixels->SetPixelColor(ledinNumero, vari);
+    pixels->Show();
 }
 
 void IlvesBotti2019::setSpeed(motor motor, int speed) {
@@ -260,44 +298,6 @@ void IlvesBotti2019::run(motor motor, directions dir) {
 void IlvesBotti2019::stopMotors() {
     setSpeed(LEFT_MOTOR, speedStopped);
     setSpeed(RIGHT_MOTOR, speedStopped);
-}
-
-void IlvesBotti2019::readSensors() {
-    // Clears the trigPin
-    digitalWrite(trigPin, LOW);
-    delayMicroseconds(2);
-
-    // Sets the trigPin on HIGH state for 10 micro seconds
-    digitalWrite(trigPin, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPin, LOW);
-
-    // Reads the echoPin, returns the sound wave travel time in microseconds
-    durationFront = pulseIn(echoPin, HIGH);
-    // Calculating the distance
-    distanceFront = durationFront * 0.0343 / 2;
-    // Prints the distance on the Serial Monitor
-    Serial.print("Distance front: ");
-    Serial.println(distanceFront);
-
-    delay(1);
-
-    // Clears the trigPin
-    digitalWrite(trigPin2, LOW);
-    delayMicroseconds(2);
-
-    // Sets the trigPin on HIGH state for 10 micro seconds
-    digitalWrite(trigPin2, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPin2, LOW);
-
-    // Reads the echoPin, returns the sound wave travel time in microseconds
-    durationSide = pulseIn(echoPin2, HIGH);
-    // Calculating the distance
-    distanceSide = durationSide * 0.0343 / 2;
-    // Prints the distance on the Serial Monitor
-    Serial.print("Distance side: ");
-    Serial.println(distanceSide);
 }
 
 void IlvesBotti2019::turnRight() {
@@ -337,7 +337,7 @@ void IlvesBotti2019::loop() {
     server.handleClient();
 #endif
 
-    readSensors();
+    // readSensors();
 
     if (shouldGoForward) {
         goForward();
@@ -365,6 +365,10 @@ void IlvesBotti2019::loop() {
 }
 
 void IlvesBotti2019::setup() {
+    for(int i=0; i<5; i++) {
+        sideSensorReadings[i] = maxDistance;
+        frontSensorReadings[i] = maxDistance;
+    }
 #ifdef WIFI_ENABLED
     setupWifi();
     setupOta();
@@ -372,24 +376,92 @@ void IlvesBotti2019::setup() {
 
     setupMotors();
     setupSensors();
-    pixels.updateType(pixelsType);
-    pixels.updateLength(pixelsLength);
-    pixels.setPin(pixelsPin);
-    pixels.begin();
+    pixels->Begin();
     // disable serial to enable led
-    //Serial.begin(115200);
+    Serial.begin(115200);
 
-    asetaLedinVari(0, green);
+    asetaLedienVari(VIHREA);
 }
 
 int IlvesBotti2019::lueEtuSensori() {
-    readSensors();
-    return distanceFront;
+    // Clears the trigPin
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+
+    // Sets the trigPin on HIGH state for 10 micro seconds
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+
+    // Reads the echoPin, returns the sound wave travel time in microseconds
+    noInterrupts();
+    long start = micros();
+    durationFront = pulseIn(echoPin, HIGH, maxPulseTime);
+    long timeTaken = micros() - start;
+    Serial.print("Time taken: ");
+    Serial.println(timeTaken);
+    interrupts();
+    if(timeTaken > maxPulseTime) {
+        Serial.println("returning max distance");
+        return maxDistance;
+    }
+    // Calculating the distance
+    distanceFront = durationFront * 0.0343 / 2;
+    // Prints the distance on the Serial Monitor
+    Serial.print("Distance front: ");
+    Serial.println(distanceFront);
+    frontReadings++;
+
+    frontSensorReadings[frontReadings++ % 5] = min(distanceFront, maxDistance);
+
+    int medianSide = median(frontSensorReadings[0], frontSensorReadings[1], frontSensorReadings[2], frontSensorReadings[3], frontSensorReadings[4]);
+
+    return medianSide;
 }
 
 int IlvesBotti2019::lueSivuSensori() {
-    readSensors();
-    return distanceSide;
+    // Clears the trigPin
+    digitalWrite(trigPin2, LOW);
+    delayMicroseconds(2);
+
+    // Sets the trigPin on HIGH state for 10 micro seconds
+    digitalWrite(trigPin2, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin2, LOW);
+
+    // Reads the echoPin, returns the sound wave travel time in microseconds
+    noInterrupts();
+    long start = micros();
+    durationSide = pulseIn(echoPin2, HIGH, maxPulseTime);
+
+    long timeTaken = micros() - start;
+    Serial.print("Time taken: ");
+    Serial.println(timeTaken);
+    interrupts();
+    if(timeTaken > maxPulseTime) {
+        Serial.println("returning max distance");
+        return maxDistance;
+    }
+
+    interrupts();
+    // Calculating the distance
+    distanceSide = durationSide * 0.0343 / 2;
+    // Prints the distance on the Serial Monitor
+    Serial.print("Distance side: ");
+    Serial.println(distanceSide);
+    sideReadings++;
+
+    sideSensorReadings[sideReadings++ % 5] = min(distanceSide, maxDistance);
+
+    int medianSide = median(sideSensorReadings[0], sideSensorReadings[1], sideSensorReadings[2], sideSensorReadings[3], sideSensorReadings[4]);
+
+    return medianSide;
+}
+
+void IlvesBotti2019::readSensors() {
+    lueEtuSensori();
+    delay(1);
+    lueSivuSensori();
 }
 
 void IlvesBotti2019::asetaToimintojenKesto(int delayMs) {
