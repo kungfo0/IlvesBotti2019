@@ -7,13 +7,6 @@ int moottori1SuuntaPin = D4;
 int moottori2PWMPin = D2;
 int moottori2SuuntaPin = D3;
 
-/*
-int moottori1PWMPin = D4;
-int moottori1SuuntaPin = D8;
-int moottori2PWMPin = D3;
-int moottori2SuuntaPin = D2;
-*/
-
 // front
 int sensori1TrigPin = D6;
 int sensori1EchoPin = D7;
@@ -24,8 +17,6 @@ int sensori2EchoPin = D5;
 
 uint16_t pixelsLength = 2;
 uint8_t pixelsPin = RX;
-// neoPixelType pixelsType = NEO_RGBW + NEO_KHZ800;
-// Adafruit_NeoPixel pixels = Adafruit_NeoPixel(pixelsLength, pixelsPin, pixelsType);
 
 long durationFront;
 long durationSide;
@@ -260,8 +251,6 @@ void loop() {
     Serial.println("Testataanko moottorit? k/e");
     while(!Serial.available()) { }
     read = Serial.read();
-    // Serial.print("read: ");
-    // Serial.println(read);
     if(read == 107 || read == 75) { // k
         testMotors();
     } else if(read == 101 || read == 69) { // e
