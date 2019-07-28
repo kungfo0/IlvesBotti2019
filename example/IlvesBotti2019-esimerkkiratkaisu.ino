@@ -2,71 +2,50 @@
 
 IlvesBotti2019 botti;
 
-int etaisyysLiianLahella = 10;
-int etaisyysLiianKaukana = 25;
-
 void setup() {
-  botti.wifi("ssid", "salasana", "botti123");
-  botti.setup();
+    botti.setup();
 }
 
-void liikuVasemmalleJaEteenpain() {
-    botti.asetaMoottorin2Nopeus(600);
-    botti.asetaMoottorin1Nopeus(0);
-    delay(700);
-    botti.asetaMoottorienNopeus(600);
-    delay(700);
-    botti.asetaMoottorienNopeus(0);
-}
+// botti yrittää olla noin 15cm päästä oikean puolisesta seinästä
+int haluttuEtaisyys = 15;
 
-void liikuOikealleJaEteenpain() {
-    botti.asetaMoottorin1Nopeus(600);
-    botti.asetaMoottorin2Nopeus(0);
-    delay(600);
-    botti.asetaMoottorienNopeus(600);
-    delay(700);
-    botti.asetaMoottorienNopeus(0);
-}
+int maksimiNopeus = 1023;
 
-void liikuTaakseJaKaannyVasemmalle() {
-    // nopeus on välillä -1023 - 1023
-    botti.asetaMoottorienNopeus(-600);
-    delay(700);
-    botti.asetaMoottorin1Nopeus(600);
-    botti.asetaMoottorin2Nopeus(0);
-    delay(700);
-    botti.asetaMoottorienNopeus(0);
-}
-
-void liikuEteenpain() {
-    botti.asetaMoottorienNopeus(600);
-    delay(700);
-    botti.asetaMoottorienNopeus(0);
-}
+// kulkunopeus on puolet maksiminopeudesta
+float vasenNopeus = maksimiNopeus / 2;
+float oikeaNopeus = maksimiNopeus / 2;
 
 void loop() {
-  // kutsu aina tätä ensin
-  botti.loop();
+    // kutsu aina tätä ensin
+    botti.loop();
 
-  // asettaa ledi 1:n värin siniseksi
-  botti.asetaLedinVari(0, 0, 0, 255, 255);
+    if(!botti.stopped) {
+        int etuSensorinArvo = botti.lueEtuSensori();
+        delay(5);
+        int sivuSensorinArvo = botti.lueSivuSensori();
+        
+        if(sivuSensorinArvo <= haluttuEtaisyys && etuSensorinArvo > haluttuEtaisyys) {
+            // seuraa seinää
+            vasenNopeus = maksimiNopeus * 0.5;
+            oikeaNopeus = maksimiNopeus * 0.5;
+            if(sivuSensorinArvo <= 0.5 * haluttuEtaisyys) {
+                vasenNopeus = maksimiNopeus * 0.3;
+                oikeaNopeus = maksimiNopeus * 0.7;
+            }
+        }
+        else if(etuSensorinArvo <= haluttuEtaisyys) {
+            // käänny jyrkästi vasemmalle
+            vasenNopeus = -(maksimiNopeus / 2);
+            oikeaNopeus = maksimiNopeus;
+        } else if(sivuSensorinArvo > haluttuEtaisyys * 0.5) {
+            // käänny lievästi oikealle
+            vasenNopeus = maksimiNopeus * 0.5;
+        }
 
-  int etuSensorinArvo = botti.lueEtuSensori();
-  int sivuSensorinArvo = botti.lueSivuSensori();
-  botti.asetaHtml(String("Etusensori: <b>") + String(etuSensorinArvo) + String("</b><br/>") + String("Sivusensori: <b>") + String(sivuSensorinArvo) + String("</b>"));
+        botti.asetaMoottorin1Nopeus(vasenNopeus);
+        botti.asetaMoottorin2Nopeus(oikeaNopeus);
+    }
 
-  if(etuSensorinArvo < etaisyysLiianLahella) {
-    liikuTaakseJaKaannyVasemmalle();
-  } else {
-    liikuEteenpain();
-  }
-  
-  if(sivuSensorinArvo < etaisyysLiianLahella) {
-    liikuVasemmalleJaEteenpain();
-  } else if(sivuSensorinArvo > etaisyysLiianKaukana) {
-    liikuOikealleJaEteenpain();
-  }
-  
-  // odota 100ms eli 0.1s
-  delay(100);
+    // venaa hetki
+    delay(10);
 }
