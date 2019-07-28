@@ -83,11 +83,11 @@ int sideReadings = 0;
 int frontSensorReadings[5];
 int sideSensorReadings[5];
 
-int IlvesBotti2019::motorPWMPin1 = 15;
-int IlvesBotti2019::motorDirPin1 = 13;
+int IlvesBotti2019::motorPWMPin1 = D8;
+int IlvesBotti2019::motorDirPin1 = D4;
 
-int IlvesBotti2019::motorPWMPin2 = 14;
-int IlvesBotti2019::motorDirPin2 = 12;
+int IlvesBotti2019::motorPWMPin2 = D2;
+int IlvesBotti2019::motorDirPin2 = D3;
 
 // from -1023 to 1023
 int IlvesBotti2019::minSpeed = -1023;
@@ -99,11 +99,11 @@ int IlvesBotti2019::speedAdjustLeft = 1.0;
 int IlvesBotti2019::wifiConnectMaxRetries = 20;
 
 // defines pins numbers
-int IlvesBotti2019::trigPin = D2;
-int IlvesBotti2019::echoPin = D1;
+int IlvesBotti2019::trigPin = D6;
+int IlvesBotti2019::echoPin = D7;
 
-int IlvesBotti2019::trigPin2 = D4;
-int IlvesBotti2019::echoPin2 = D3;
+int IlvesBotti2019::trigPin2 = D1;
+int IlvesBotti2019::echoPin2 = D5;
 
 long IlvesBotti2019::durationFront;
 long IlvesBotti2019::durationSide;
@@ -384,78 +384,83 @@ void IlvesBotti2019::setup() {
 }
 
 int IlvesBotti2019::lueEtuSensori() {
-    // Clears the trigPin
-    digitalWrite(trigPin, LOW);
-    delayMicroseconds(2);
+    for (int i=0;i<5;i++) {
+        // Clears the trigPin
+        digitalWrite(trigPin, LOW);
+        delayMicroseconds(2);
 
-    // Sets the trigPin on HIGH state for 10 micro seconds
-    digitalWrite(trigPin, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPin, LOW);
+        // Sets the trigPin on HIGH state for 10 micro seconds
+        digitalWrite(trigPin, HIGH);
+        delayMicroseconds(10);
+        digitalWrite(trigPin, LOW);
 
-    // Reads the echoPin, returns the sound wave travel time in microseconds
-    noInterrupts();
-    long start = micros();
-    durationFront = pulseIn(echoPin, HIGH, maxPulseTime);
-    long timeTaken = micros() - start;
-    Serial.print("Time taken: ");
-    Serial.println(timeTaken);
-    interrupts();
-    if(timeTaken > maxPulseTime) {
-        Serial.println("returning max distance");
-        return maxDistance;
+        // Reads the echoPin, returns the sound wave travel time in microseconds
+        noInterrupts();
+        long start = micros();
+        durationFront = pulseIn(echoPin, HIGH, maxPulseTime);
+        long timeTaken = micros() - start;
+        Serial.print("Time taken: ");
+        Serial.println(timeTaken);
+        interrupts();
+        if (timeTaken > maxPulseTime) {
+            Serial.println("returning previous front median");
+            return getMedianFront();
+        }
+        // Calculating the distance
+        distanceFront = durationFront * 0.0343 / 2;
+        // Prints the distance on the Serial Monitor
+        Serial.print("Distance front: ");
+        Serial.println(distanceFront);
+        frontReadings++;
+
+        frontSensorReadings[frontReadings++ % 5] = min(distanceFront, maxDistance);
     }
-    // Calculating the distance
-    distanceFront = durationFront * 0.0343 / 2;
-    // Prints the distance on the Serial Monitor
-    Serial.print("Distance front: ");
-    Serial.println(distanceFront);
-    frontReadings++;
 
-    frontSensorReadings[frontReadings++ % 5] = min(distanceFront, maxDistance);
-
-    int medianSide = median(frontSensorReadings[0], frontSensorReadings[1], frontSensorReadings[2], frontSensorReadings[3], frontSensorReadings[4]);
-
-    return medianSide;
+    return getMedianFront();
 }
 
 int IlvesBotti2019::lueSivuSensori() {
-    // Clears the trigPin
-    digitalWrite(trigPin2, LOW);
-    delayMicroseconds(2);
+    for (int i=0;i<5;i++) {
+        // Clears the trigPin
+        digitalWrite(trigPin2, LOW);
+        delayMicroseconds(2);
 
-    // Sets the trigPin on HIGH state for 10 micro seconds
-    digitalWrite(trigPin2, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPin2, LOW);
+        // Sets the trigPin on HIGH state for 10 micro seconds
+        digitalWrite(trigPin2, HIGH);
+        delayMicroseconds(10);
+        digitalWrite(trigPin2, LOW);
 
-    // Reads the echoPin, returns the sound wave travel time in microseconds
-    noInterrupts();
-    long start = micros();
-    durationSide = pulseIn(echoPin2, HIGH, maxPulseTime);
+        // Reads the echoPin, returns the sound wave travel time in microseconds
+        noInterrupts();
+        long start = micros();
+        durationSide = pulseIn(echoPin2, HIGH, maxPulseTime);
 
-    long timeTaken = micros() - start;
-    Serial.print("Time taken: ");
-    Serial.println(timeTaken);
-    interrupts();
-    if(timeTaken > maxPulseTime) {
-        Serial.println("returning max distance");
-        return maxDistance;
+        long timeTaken = micros() - start;
+        Serial.print("Time taken: ");
+        Serial.println(timeTaken);
+        interrupts();
+        if (timeTaken > maxPulseTime) {
+            Serial.println("returning previous side median");
+            return getMedianSide();
+        }
+        // Calculating the distance
+        distanceSide = durationSide * 0.0343 / 2;
+        // Prints the distance on the Serial Monitor
+        Serial.print("Distance side: ");
+        Serial.println(distanceSide);
+        sideReadings++;
+
+        sideSensorReadings[sideReadings++ % 5] = min(distanceSide, maxDistance);
     }
+    return getMedianSide();
+}
 
-    interrupts();
-    // Calculating the distance
-    distanceSide = durationSide * 0.0343 / 2;
-    // Prints the distance on the Serial Monitor
-    Serial.print("Distance side: ");
-    Serial.println(distanceSide);
-    sideReadings++;
+int IlvesBotti2019::getMedianSide() {
+    return median(sideSensorReadings[0], sideSensorReadings[1], sideSensorReadings[2], sideSensorReadings[3], sideSensorReadings[4]);
+}
 
-    sideSensorReadings[sideReadings++ % 5] = min(distanceSide, maxDistance);
-
-    int medianSide = median(sideSensorReadings[0], sideSensorReadings[1], sideSensorReadings[2], sideSensorReadings[3], sideSensorReadings[4]);
-
-    return medianSide;
+int IlvesBotti2019::getMedianFront() {
+    return median(frontSensorReadings[0], frontSensorReadings[1], frontSensorReadings[2], frontSensorReadings[3], frontSensorReadings[4]);
 }
 
 void IlvesBotti2019::readSensors() {

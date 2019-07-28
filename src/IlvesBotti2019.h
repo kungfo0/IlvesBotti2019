@@ -98,6 +98,8 @@ private:
     static void turnLeft();
     static void goForward();
     static void goBackward();
+    static int getMedianSide();
+    static int getMedianFront();
     static NeoPixelBus<NeoRgbFeature, Neo400KbpsMethod>* pixels;
 };
 #endif
