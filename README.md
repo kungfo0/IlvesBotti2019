@@ -17,7 +17,7 @@ http://arduino.esp8266.com/stable/package_esp8266com_index.json
 
 ## Ohjeet
 ### Esimerkkiratkaisun lataaminen botille
-1. Avaa esimerkkiratkaisu kansiosta Arduino/IlvesBotti2019/IlvesBotti2019-esimerkkiratkaisu.ino tuplaklikkaamalla sitä.
+1. Avaa esimerkkiratkaisu kansiosta Arduino/IlvesBotti2019/IlvesBotti2019-esimerkkiratkaisu.ino tuplaklikkaamalla sitä tai Arduinon valikosta File -> examples -> IlvesBotti2019/IlvesBotti2019-esimerkkiratkaisu.
 2. Valitse Arduinon Tools -valikon Board -alasvetovalikosta arvo "LOLIN (Wemos) D1 mini Pro"
 3. Kytke botti usb-porttin ja odota pieni hetki, että kone tunnistaa sen
 4. Valitse Arduinon Tools -valikon Port -alasvetovalikosta oikea portti. Portteja pitäisi olla yksi ja sen nimi pitäisi olla COM1 - COM9.
@@ -25,7 +25,7 @@ http://arduino.esp8266.com/stable/package_esp8266com_index.json
 6. Nyt esimerkkiratkaisu on botissa ja voit irroittaa usb -kaapelin ja testata bottia radalla.
 
 ### Oman ratkaisun lataaminen botille
-1. Avaa tyhjä (lähes :)) ratkaisu kansiosta Arduino/IlvesBotti2019/IlvesBotti2019-tyhja.ino tuplaklikkaamalla sitä.
+1. Avaa tyhjä (lähes :)) ratkaisu kansiosta Arduino/IlvesBotti2019/IlvesBotti2019-tyhja.ino tuplaklikkaamalla sitä tai Arduinon valikosta File -> examples -> IlvesBotti2019/IlvesBotti2019-tyhja.
 2. Tämä ratkaisu lukee molemman sensorin arvoja ja kääntää bottia vasemmalle mikäli etusensorin arvo on alle 15cm, muuten botti yrittää kulkea suoraan.
 3. Yritä saatko lisättyä ratkaisuun toiminnon, jossa botti ohjautuu sivusensorin perusteella. Voit katsoa mallia esimerkkiratkaisusta.
 4. Lataa ratkaisusi botille Esimerkkiratkaisun latausohjeiden mukaisesti ja testaa sitä radalla.
