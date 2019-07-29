@@ -3,7 +3,6 @@
 IlvesBotti2019 botti;
 
 void setup() {
-  botti.wifi("Wlan ssid", "wlan salasana", "botti"); // viimeinnen arvo on botin nimi, vaihda se yksilölliseksi
   botti.setup();
 }
 
