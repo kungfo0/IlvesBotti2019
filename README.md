@@ -25,5 +25,7 @@ http://arduino.esp8266.com/stable/package_esp8266com_index.json
 6. Nyt esimerkkiratkaisu on botissa ja voit irroittaa usb -kaapelin ja testata bottia radalla.
 
 ### Oman ratkaisun lataaminen botille
-
-
+1. Avaa tyhjä (lähes :)) ratkaisu kansiosta Arduino/IlvesBotti2019/IlvesBotti2019-tyhja.ino tuplaklikkaamalla sitä.
+2. Tämä ratkaisu lukee molemman sensorin arvoja ja kääntää bottia vasemmalle mikäli etusensorin arvo on alle 15cm, muuten botti yrittää kulkea suoraan.
+3. Yritä saatko lisättyä ratkaisuun toiminnon, jossa botti ohjautuu sivusensorin perusteella. Voit katsoa mallia esimerkkiratkaisusta.
+4. Lataa ratkaisusi botille Esimerkkiratkaisun latausohjeiden mukaisesti ja testaa sitä radalla.
