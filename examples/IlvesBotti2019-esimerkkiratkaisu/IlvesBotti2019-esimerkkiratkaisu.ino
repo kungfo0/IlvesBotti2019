@@ -39,8 +39,8 @@ void loop() {
             oikeaNopeus = maksimiNopeus;
         } else if(sivuSensorinArvo > haluttuEtaisyys * 0.5) {
             // käänny lievästi oikealle
-            vasenNopeus = maksimiNopeus * 0.6;
-            oikeaNopeus = maksimiNopeus * 0.5;
+            vasenNopeus = maksimiNopeus * 0.7;
+            oikeaNopeus = maksimiNopeus * 0.3;
         }
 
         botti.asetaMoottorin1Nopeus(vasenNopeus);
